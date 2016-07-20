@@ -9,10 +9,11 @@ import numpy as np
 from scipy.optimize import minimize
 
 import kiwiel
+#reload(kiwiel)
+import alternatingOptim
 
 
-
-def run(W0,W1,W2,rho,maxiter_main,*args):
+def run(W0,W1,W2,rho,method,maxiter_main,*args):
     #X,y1,y2,\
     #filt0,alg1,alg2,hparams0,hparams1,hparams2):
 
@@ -42,11 +43,15 @@ def run(W0,W1,W2,rho,maxiter_main,*args):
         % 
     end
     '''
-    
-    u,wv = kiwiel.run(u,(w,v),maxiter_main,_f_joint,_Phi_joint,_Phi_lin_joint,rho,*args)
-    #u,v,Phiu = kiwiel.run(u,v,maxiter_main,f,Phi,Philin)#,args)
-    w = wv[0]
-    v = wv[1]
+    if (method=='kiwiel'):    
+        u,wv = kiwiel.run(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
+    elif (method=='alt'):
+        u,wv = alternatingOptim.run1(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
+    else:
+        print 'Unknown method'
+        exit()
+        
+    w,v = wv
     
     #% Check dfdx
     #function [fval,dfdu] = ftemp1(u,w,v,X,y1,y2,K1,K2,rho,lambda0,lambda1,lambda2)
@@ -55,7 +60,27 @@ def run(W0,W1,W2,rho,maxiter_main,*args):
     return (u,w,v)
 
 
-def _f_joint(u,wv,\
+
+def _f(u,wv,\
+        rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):        
+
+    # f(u,wv) = rho*f1(u,w) - f2(u,v). 
+    D,N = X.shape
+    w = wv[0]
+    v = wv[1]
+    G = filt0.g(u,X,hparams0)
+    #d = G.shape[0]
+    f1 = alg1.f(w,G,y1,hparams1)
+    f2 = alg2.f(v,G,y2,hparams2)
+
+    fval = rho*f1 - f2 + .5*hparams0['l']*(u**2).sum()
+
+    assert np.isnan(fval)==False
+    return fval
+
+
+
+def _dfdu(u,wv,\
         rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):        
 
     # f(u,wv) = rho*f1(u,w) - f2(u,v). 
@@ -64,24 +89,25 @@ def _f_joint(u,wv,\
     v = wv[1]
     G = filt0.g(u,X,hparams0)
     d = G.shape[0]
-    f1 = alg1.f(w,G,y1,hparams1)
-    f2 = alg2.f(v,G,y2,hparams2)
 
-    # dgdu: u.size x d x N
-    dgdu = filt0.dgdu(u,X,hparams0).reshape((u.size,d*N)) # u.size x d x N
+    # dgdu: u.size x d x Nsub
+    # If dgdu is too large, subsample X and limit dgdu to 2GB
+    MAX_MEMORY = 2.*1024*1024*1024 # 2GB
+    Nsub = round(MAX_MEMORY/(u.size*d*8.))
+    Nsub = min(Nsub,N)
+    ind = np.random.choice(range(N),size=(Nsub,),replace=False)
+    dgdu = filt0.dgdu(u,X[:,ind],hparams0).reshape((u.size,d*Nsub)) # u.size x d x N
+    df1 = alg1.dfdu(w,G[:,ind],y1[ind],dgdu,hparams1)
+    df2 = alg2.dfdu(v,G[:,ind],y2[ind],dgdu,hparams2)        
 
-    df1 = alg1.dfdu(w,G,y1,dgdu,hparams1)
-    df2 = alg2.dfdu(v,G,y2,dgdu,hparams2)        
+    dfdu = rho*df1 - df2 + hparams0['l']*u
 
-    fval = rho*f1 - f2
-    dfdu = rho*df1 - df2
-
-    assert np.isnan(fval)==False
     assert np.isnan(dfdu).any()==False
-    return (fval,dfdu)
+    return dfdu
 
 
-def _Phi_joint(u,wv,maxiter,\
+
+def _Phi(u,wv,maxiter,\
         rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):        
     # Phi(u) = -rho*max_w -f1(u,w) + max_v -f2(u,v)
     # = -rho Phi1(u) + Phi2(u), where 
@@ -103,7 +129,7 @@ def _Phi_joint(u,wv,maxiter,\
     v = res.x
     Phiu2 = -res.fun
 
-    Phiu = -rho*Phiu1 + Phiu2
+    Phiu = -rho*Phiu1 + Phiu2 + .5*hparams0['l']*(u**2).sum()
 
     assert np.isnan(w).any()==False
     assert np.isnan(v).any()==False
@@ -112,7 +138,8 @@ def _Phi_joint(u,wv,maxiter,\
     return ((w,v),Phiu)
 
 
-def _Phi_lin_joint(u,wv,q,maxiter,\
+
+def _Phi_lin(u,wv,q,maxiter,\
     rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):        
 
     w = wv[0]
@@ -120,24 +147,31 @@ def _Phi_lin_joint(u,wv,q,maxiter,\
 
     G = filt0.g(u,X,hparams0)
     d,N = G.shape
-    dgdu = filt0.dgdu(u,X,hparams0).reshape((u.size,d*N)) # u.size x d x N
     
+    # dgdu: u.size x d x Nsub
+    # If dgdu is too large, subsample X and limit dgdu to 2GB
+    MAX_MEMORY = 2.*1024*1024*1024 # 2GB
+    Nsub = round(MAX_MEMORY/(u.size*d*8.))
+    Nsub = min(Nsub,N)
+    ind = np.random.choice(range(N),size=(Nsub,),replace=False)
+    dgdu = filt0.dgdu(u,X[:,ind],hparams0).reshape((u.size,d*Nsub)) # u.size x d x N
+   
     # Phi_lin(u) = -rho*max_w -f1(u,w) + max_v -f2(u,v)
     # = -rho Phi1lin(u) + Phi2lin(u), where 
     # Phi1lin(u) = max_w -f1lin, Phi2lin(u) = max_v -f2lin
     
-    res = minimize(alg1.flin, w, args=(q,G,y1,dgdu,hparams1), \
+    res = minimize(alg1.flin, w, args=(q,G[:,ind],y1[ind],dgdu,hparams1), \
         method='BFGS',jac=alg1.dflindv, options={'disp':False, 'maxiter':maxiter})    
     w = res.x
     Phiu1 = -res.fun
 
 
-    res = minimize(alg2.flin, v, args=(q,G,y2,dgdu,hparams2),\
+    res = minimize(alg2.flin, v, args=(q,G[:,ind],y2[ind],dgdu,hparams2),\
         method='BFGS',jac=alg2.dflindv, options={'disp':False, 'maxiter':maxiter})    
     v = res.x
     Phiu2 = -res.fun
 
-    Phiu = -rho*Phiu1 + Phiu2
+    Phiu = -rho*Phiu1 + Phiu2 + .5*hparams0['l']*(u**2).sum()
     
     assert np.isnan(w).any()==False
     assert np.isnan(v).any()==False
@@ -148,9 +182,10 @@ def _Phi_lin_joint(u,wv,q,maxiter,\
 
 
 def selftest1():
-    
+    ## Linear filter
+
     import privacyLDA
-    from filterAlg import Linear
+    from filterAlg_Linear import Linear
     from learningAlg import mlogreg 
     
     # Generate data
@@ -188,7 +223,7 @@ def selftest1():
     maxiter = 30
     maxiter_main = 1
     maxiter_final = 50
-    rho = 1.
+    rho = 10.
     lambda0 = 1e-8
     lambda1 = 1e-8
     lambda2 = 1e-8
@@ -199,16 +234,20 @@ def selftest1():
     hparams1 = {'K':K1, 'l':lambda1, 'd':d}
     hparams2 = {'K':K2,'l':lambda2, 'd':d}
     
-    if True:
+    if False:
         U,dd = privacyLDA.run(X[:,ind_train],y1[ind_train],y2[ind_train])
-        w0 = U[:,0:d].flatten()
+        w0_init = U[:,0:d].flatten()
     else:
-        w0 = Linear.init(hparams0)
+        w0_init = Linear.init(hparams0)
     #print (W0**2).sum()    
-    w1 = mlogreg.init(hparams1)
-    w2 = mlogreg.init(hparams2)
+    w1_init = mlogreg.init(hparams1)
+    w2_init = mlogreg.init(hparams2)
     
-    
+
+    print '\n\nKiwiel''s method'
+    w0 = w0_init
+    w1 = w1_init
+    w2 = w2_init
     for iter in range(maxiter):
         #print (W0**2).sum()
         G_train = Linear.g(w0,X[:,ind_train],hparams0)
@@ -226,23 +265,51 @@ def selftest1():
         print 'rate_tar= %.2f, rate_subj= %.2f' % (rate1,rate2)
     
         # run one iteration
-        w0,w1,w2 = run(w0,w1,w2,rho,maxiter_main,\
+        w0,w1,w2 = run(w0,w1,w2,rho,'kiwiel',maxiter_main,\
             X[:,ind_train],y1[ind_train],y2[ind_train],\
             Linear,mlogreg,mlogreg,\
             hparams0,hparams1,hparams2)
     
-        val,_ = _f_joint(w0,(w1,w2),\
-            rho,X[:,ind_train],y1[ind_train],y2[ind_train],\
+        #val = _f(w0,(w1,w2),\
+        #    rho,X[:,ind_train],y1[ind_train],y2[ind_train],\
+        #    NN1,mlogreg,mlogreg,\
+        #    hparams0,hparams1,hparams2)
+            
+        #print 'val=', val, '\n'
+   
+
+    print '\n\nAlternating optimization'
+    w0 = w0_init
+    w1 = w1_init
+    w2 = w2_init
+    for iter in range(maxiter):
+        #print (W0**2).sum()
+        G_train = Linear.g(w0,X[:,ind_train],hparams0)
+       
+        # Full training
+        tW1,f1 = mlogreg.train(G_train,y1[ind_train],hparams1,None,maxiter_final)
+        tW2,f2 = mlogreg.train(G_train,y2[ind_train],hparams2,None,maxiter_final)
+        
+        # Testing error
+        G_test = Linear.g(w0,X[:,ind_test],hparams0)
+        
+        rate1,_ = mlogreg.accuracy(tW1,G_test,y1[ind_test])
+        rate2,_ = mlogreg.accuracy(tW2,G_test,y2[ind_test])
+    
+        print 'rate_tar= %.2f, rate_subj= %.2f' % (rate1,rate2)
+    
+        # run one iteration
+        w0,w1,w2 = run(w0,w1,w2,rho,'alt',maxiter_main,\
+            X[:,ind_train],y1[ind_train],y2[ind_train],\
             Linear,mlogreg,mlogreg,\
             hparams0,hparams1,hparams2)
-            
-        print 'val=', val, '\n'
 
 
 
 def selftest2():
+    ## Simple neural network filter
     
-    from filterAlg import NN1
+    from filterAlg_NN import NN1
     from learningAlg import mlogreg 
     
     # Generate data
@@ -280,7 +347,7 @@ def selftest2():
     maxiter = 30
     maxiter_main = 1
     maxiter_final = 50
-    rho = 1.
+    rho = 10.
     lambda0 = 1e-8
     lambda1 = 1e-8
     lambda2 = 1e-8
@@ -292,11 +359,15 @@ def selftest2():
     hparams1 = {'K':K1, 'l':lambda1, 'd':d}
     hparams2 = {'K':K2,'l':lambda2, 'd':d}
     
-    w0 = NN1.init(hparams0)
-    w1 = mlogreg.init(hparams1)
-    w2 = mlogreg.init(hparams2)
+    w0_init = NN1.init(hparams0)
+    w1_init = mlogreg.init(hparams1)
+    w2_init = mlogreg.init(hparams2)
+    
 
-
+    print '\n\nKiwiel''s method'
+    w0 = w0_init
+    w1 = w1_init
+    w2 = w2_init
     for iter in range(maxiter):
         #print (W0**2).sum()
         G_train = NN1.g(w0,X[:,ind_train],hparams0)
@@ -314,15 +385,92 @@ def selftest2():
         print 'rate_tar= %.2f, rate_subj= %.2f' % (rate1,rate2)
     
         # run one iteration
-        w0,w1,w2 = run(w0,w1,w2,rho,maxiter_main,\
+        w0,w1,w2 = run(w0,w1,w2,rho,'kiwiel',maxiter_main,\
             X[:,ind_train],y1[ind_train],y2[ind_train],\
             NN1,mlogreg,mlogreg,\
             hparams0,hparams1,hparams2)
     
-        val,_ = _f_joint(w0,(w1,w2),\
-            rho,X[:,ind_train],y1[ind_train],y2[ind_train],\
+        #val = _f(w0,(w1,w2),\
+        #    rho,X[:,ind_train],y1[ind_train],y2[ind_train],\
+        #    NN1,mlogreg,mlogreg,\
+        #    hparams0,hparams1,hparams2)
+            
+        #print 'val=', val, '\n'
+   
+
+    print '\n\nAlternating optimization'
+    w0 = w0_init
+    w1 = w1_init
+    w2 = w2_init
+    for iter in range(maxiter):
+        #print (W0**2).sum()
+        G_train = NN1.g(w0,X[:,ind_train],hparams0)
+       
+        # Full training
+        tW1,f1 = mlogreg.train(G_train,y1[ind_train],hparams1,None,maxiter_final)
+        tW2,f2 = mlogreg.train(G_train,y2[ind_train],hparams2,None,maxiter_final)
+        
+        # Testing error
+        G_test = NN1.g(w0,X[:,ind_test],hparams0)
+        
+        rate1,_ = mlogreg.accuracy(tW1,G_test,y1[ind_test])
+        rate2,_ = mlogreg.accuracy(tW2,G_test,y2[ind_test])
+    
+        print 'rate_tar= %.2f, rate_subj= %.2f' % (rate1,rate2)
+    
+        # run one iteration
+        w0,w1,w2 = run(w0,w1,w2,rho,'alt',maxiter_main,\
+            X[:,ind_train],y1[ind_train],y2[ind_train],\
             NN1,mlogreg,mlogreg,\
             hparams0,hparams1,hparams2)
-            
-        print 'val=', val, '\n'
+
+'''    
+    ################################################################################
+    ## Compare kiwiel and alternating
+
+    maxiter = 100
+    w0_init = NN1.init(hparams0)
+    w1_init = mlogreg.init(hparams1)
+    w2_init = mlogreg.init(hparams2)
     
+    w0,w1,w2 = run(w0_init,w1_init,w2_init,rho,'kiwiel',maxiter,\
+        X[:,ind_train],y1[ind_train],y2[ind_train],\
+        NN1,mlogreg,mlogreg,\
+        hparams0,hparams1,hparams2)
+
+    
+    G_train = NN1.g(w0,X[:,ind_train],hparams0)
+   
+    # Full training
+    tW1,f1 = mlogreg.train(G_train,y1[ind_train],hparams1,None,maxiter_final)
+    tW2,f2 = mlogreg.train(G_train,y2[ind_train],hparams2,None,maxiter_final)
+    
+    # Testing error
+    G_test = NN1.g(w0,X[:,ind_test],hparams0)
+    
+    rate1,_ = mlogreg.accuracy(tW1,G_test,y1[ind_test])
+    rate2,_ = mlogreg.accuracy(tW2,G_test,y2[ind_test])
+
+    print 'Kiwiel: rate_tar= %.2f, rate_subj= %.2f' % (rate1,rate2)
+    
+    
+    
+    w0,w1,w2 = run(w0_init,w1_init,w2_init,rho,'alternating',maxiter,\
+        X[:,ind_train],y1[ind_train],y2[ind_train],\
+        NN1,mlogreg,mlogreg,\
+        hparams0,hparams1,hparams2)
+    
+    G_train = NN1.g(w0,X[:,ind_train],hparams0)
+   
+    # Full training
+    tW1,f1 = mlogreg.train(G_train,y1[ind_train],hparams1,None,maxiter_final)
+    tW2,f2 = mlogreg.train(G_train,y2[ind_train],hparams2,None,maxiter_final)
+    
+    # Testing error
+    G_test = NN1.g(w0,X[:,ind_test],hparams0)
+    
+    rate1,_ = mlogreg.accuracy(tW1,G_test,y1[ind_test])
+    rate2,_ = mlogreg.accuracy(tW2,G_test,y2[ind_test])
+
+    print 'Alternating:rate_tar= %.2f, rate_subj= %.2f' % (rate1,rate2)
+'''

@@ -7,7 +7,7 @@ Created on Sun Jul 10 11:31:31 2016
 
 import numpy as np
 
-def run(u,v,maxiter_main,f,Phi,Phi_lin,*args):
+def run(u,v,maxiter_main,f,dfdu,Phi,Phi_lin,*args):
 
     
     #% \min_{u \in \X} \max_{y \in \Y} f(u,y)
@@ -45,10 +45,10 @@ def run(u,v,maxiter_main,f,Phi,Phi_lin,*args):
     sigma = 0.5
     m = 2E-4
     
-    maxiter_aa = 5
-    maxiter_Phi = 50
-    maxiter_Phi_lin = 50
-    maxiter_linesearch = 10
+    maxiter_aa = 200
+    maxiter_Phi = 200
+    maxiter_Phi_lin = 200
+    maxiter_linesearch = 30
 
     
     for it in range(maxiter_main):
@@ -60,7 +60,7 @@ def run(u,v,maxiter_main,f,Phi,Phi_lin,*args):
         #%fprintf('Main iter=%d/%d, Phiu=%f\n',iter,maxiter_main,Phiu);
         #% Step 2. Direction-finding subproblem 
         q,Psi = _AuxiliaryAlgorithm(u,v_,\
-                Phiu,xi,m,maxiter_aa,maxiter_Phi_lin,f,Phi_lin,*args)
+                Phiu,xi,m,maxiter_aa,maxiter_Phi_lin,f,dfdu,Phi_lin,*args)
         if Psi >= -xi:
             break
             
@@ -87,7 +87,7 @@ def run(u,v,maxiter_main,f,Phi,Phi_lin,*args):
     return (u,v)
 
 
-def _AuxiliaryAlgorithm(u,v,Phiu,xi,m,maxiter_aa,maxiter_Phi_lin,f,Phi_lin,*args):
+def _AuxiliaryAlgorithm(u,v,Phiu,xi,m,maxiter_aa,maxiter_Phi_lin,f,dfdu,Phi_lin,*args):
 
     #% Auxiliary Algorithm (AA) (requires input values: xk in \R^n, Phi(xk), xi >=0, m in (0,1)
     #% Step 0. Initialization: set u = xk, Phi(u) = Phi(xk), select any w in Y, set
@@ -109,8 +109,9 @@ def _AuxiliaryAlgorithm(u,v,Phiu,xi,m,maxiter_aa,maxiter_Phi_lin,f,Phi_lin,*args
     #% Phiu = Phiu; % given as argument
     #%y = ymax; % given as arguments
     
-    fval,dfdu = f(u,v,*args)
-    p = dfdu 
+    fval = f(u,v,*args)
+    dfdu_ = dfdu(u,v,*args)    
+    p = dfdu_
     t = fval 
     Psi = 0.0
     assert np.isnan(p).any()==False
@@ -122,14 +123,15 @@ def _AuxiliaryAlgorithm(u,v,Phiu,xi,m,maxiter_aa,maxiter_Phi_lin,f,Phi_lin,*args
         #%1/2*|mu(g-p) + p|^2 + mu(t-f) - t = 1/2*mu^2(g-p)'(g-p)+mu(g-p)'p + 1/2*p'p + mu(t-f)
         #%= mu^2 (1/2 |g-p|^2) + mu((g-p)'p + t-f) + const
         #%=> mu = -((g-p)'p + t-f)/(|g-p|^2)
-        fval,dfdu = f(u,v,*args)
+        fval = f(u,v,*args)
+        dfdu_ = dfdu(u,v,*args)    
     
         if it==0:
             mu = .5
         else:
-            mu = -(np.dot(dfdu-p,p) + t-fval)/np.dot(dfdu-p,dfdu-p)
+            mu = -(np.dot(dfdu_-p,p) + t-fval)/np.dot(dfdu_-p,dfdu_-p)
         
-        p = (1.-mu)*p + mu*dfdu
+        p = (1.-mu)*p + mu*dfdu_
         t = (1.-mu)*t + mu*fval
         Psi = -(np.dot(p,p) + Phiu - t)
         if Psi >= -xi:
@@ -160,9 +162,15 @@ def selftest1():
         # f(u,v) = |u|^2 - |v|^2 -2*u'v = 2u'u - (v+u)'(v+u)
         #u = u.flatten()
         fval = 2*np.dot(u,u) - np.dot(v+u,v+u)
-        dfdu = 2*u - 2*v
-        return (fval, dfdu)
+        return fval
+
     
+    def dfdu(u,v,*args):
+        # f(u,v) = |u|^2 - |v|^2 -2*u'v = 2u'u - (v+u)'(v+u)
+        #u = u.flatten()
+        dfdu_ = 2*u - 2*v
+        return dfdu_
+        
     
     def flin(u,v,q,*args):
         # f_(v;xk,v) = f(xk,v) + dfdu(xk,v)'*q.    
@@ -206,9 +214,9 @@ def selftest1():
     
     for iter in range(maxiter):
         
-        u,v = run(u,v,maxiter_main,f,Phi,Philin)#,args)
+        u,v = run(u,v,maxiter_main,f,dfdu,Phi,Philin)#,args)
         #print u,v
-        fval,_ = f(u,v)
+        fval = f(u,v)
         print fval
     
         

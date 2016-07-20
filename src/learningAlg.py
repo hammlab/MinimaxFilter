@@ -127,9 +127,13 @@ class mlogreg(LearningAlg):
         #ypred = np.zeros((N,),dtype=int)    
         #pyx = np.zeros((K,N))
         
-        expWG = np.exp(np.dot(W.T,G)) # K x N
-        pyx = expWG / np.kron(np.ones((K,1)),expWG.sum(axis=0).reshape((1,N)))     
-        ypred = np.argmax(pyx, axis=0)    
+        WG = np.dot(W.T,G)
+        #expWG = np.exp(WG) # K x N
+        expWG = np.exp(WG-np.tile(WG.max(axis=0,keepdims=True),(K,1)))
+        sumexpWG = expWG.sum(axis=0,keepdims=True) #% 1 x N
+        
+        pyx = expWG / np.tile(sumexpWG,(K,1))     
+        ypred = np.argmax(pyx, axis=0)
     
         return (ypred,pyx)
         
@@ -189,7 +193,7 @@ class mlogreg(LearningAlg):
 
 
     @staticmethod
-    def dfdu(W,G,y,dgdu,hparams): # u.size x v.size = D*d x d*k
+    def dfdu(W,G,y,dgdu,hparams): # u.size
         # d2fdudv = d/dv (df/du)
         # = d/dv (1/N*sum(dli/dgi*dgidu))
         # = 1/N*sum (d2li/dgidv*dgidu )

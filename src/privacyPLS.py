@@ -11,68 +11,57 @@ import matplotlib.pyplot as plt
 import scipy.linalg
 #from scipy.optimize import minimize
 
-UNFINISHED
 
-def run(X,y1,y2):
-    # function [E,dd] = privacyLDA(X,y1,y2)
-    # %max_W0 tr(W0'*C1*W0) - tr(W0'*C2*W0)
+## \max_u \mathrm{Cov}(u'X,Y1)^2 - \lambda\mathrm{Cov}(u'X,Y2)^2, s.t. u'u =1
+
+def run(X,y1,y2,dmax=None):
+
     D,N = X.shape
-    y1_unique = np.unique(y1)
-    #print y1_unique
-    #[y1_unique,~,J1] = unique(y1);
-    #ny1 = y1_unique.size
+    y1_unique,J1 = np.unique(y1, return_inverse=True)
+    ny1 = y1_unique.size
 
-    y2_unique = np.unique(y2)
-    #print y2_unique
-    #[y2_unique,~,J2] = unique(y2);
-    #ny2 = y2_unique.size
+    y2_unique,J2 = np.unique(y2, return_inverse=True)
+    ny2 = y2_unique.size
 
-    C1 = np.zeros((D,D))
-    C2 = np.zeros((D,D))
-    mu = X.mean(axis=1).reshape((D,1))
-    #print mu.shape
+    Y1 = np.zeros((ny1,N))
+    Y2 = np.zeros((ny2,N))
+    Y1[J1,range(N)] = 1.
+    Y2[J2,range(N)] = 1.
+    
+    XY2 = np.dot(X,Y2.T) # D x ny2
+    XY2Y2X = np.dot(XY2,XY2.T) # D x D
+    XX = np.dot(X,X.T) # D x D
+    
+    P = np.zeros((D,0))
+    Sj = np.dot(X,Y1.T) #  D x ny1
 
-    for k in np.nditer(y1_unique):
-        indk = np.where(y1==k)[0]        
-        muk = X[:,indk].mean(axis=1).reshape((D,1))
-        #muk -= np.kron(np.ones((1,len(indk))),mu)
-        #%C1 = C1 + ny1*(muk-mu)*(muk-mu)';
-        C1 = C1 + len(indk)*np.dot(muk-mu,(muk-mu).T)
-    
-    for k in np.nditer(y2_unique):
-        indk = np.where(y2==k)[0]        
-        muk = X[:,indk].mean(axis=1).reshape((D,1))
-        #muk -= np.kron(np.ones((1,len(indk))),mu)
-        #%C1 = C1 + ny1*(muk-mu)*(muk-mu)';
-        C2 = C2 + len(indk)*np.dot(muk-mu,(muk-mu).T)
-    
-    C1 = C1 + 1e-8*np.trace(C1)*np.eye(D)# 
-    C2 = C2 + 1e-8*np.trace(C2)*np.eye(D)#
-    C1 = 0.5*(C1+C1.T)#;% + 1E-8*trace(C1)*eye(D); 
-    C2 = 0.5*(C2+C2.T)#;% + 1E-8*trace(C2)*eye(D);
-    
+    if dmax==None:
+        dmax = D
 
-    dd,E = scipy.linalg.eigh(C1,C2) # ascending order
+    for d in range(dmax):
+        if d>0: 
+            invPP = np.linalg.pinv(np.dot(P.T,P))
+            Sj -= np.dot(np.dot(np.dot(P,invPP),P.T),Sj) 
+
+        C = np.dot(Sj,Sj.T) - XY2Y2X
+        C = 0.5*(C+C.T)
+        dd,E = scipy.linalg.eigh(C,eigvals=(D-1,D-1)) # ascending order
+        
+        assert np.isnan(dd).any()==False
+        assert np.iscomplex(dd).any()==False
+        #dd = dd[::-1] #
+        #E = E[:,::-1]
+        wj = E#E[:,0] # D x 1
+        pj = np.dot(XX,wj) / np.dot(np.dot(wj.T,XX),wj) # D x 1
+        P = np.hstack((P,pj.reshape((D,1)))) #  D x d
     
-    #print dd.shape
-    #print E.shape
-    
-    assert np.isnan(dd).any()==False
-    assert np.iscomplex(dd).any()==False
-    #[dd,ind] = sort(diag(dd),'descend'); 
-    #print dd
-    dd = dd[::-1] #
-    E = E[:,::-1]
-    
-    E = E/np.tile(np.sqrt((E**2).sum(axis=0,keepdims=True)),(D,1))
+        
+    #P = P/np.tile(np.sqrt((P**2).sum(axis=0,keepdims=True)),(D,1))
     #% They need not be orthogonal.
-
-    #print dd.shape
-    #print E.shape
-
-    return (E,dd)
+    return P            
     
-    
+
+'''
 def selftest1():
     
     # Generate data
@@ -100,7 +89,7 @@ def selftest1():
     y1 = y1.reshape((N,))
     y2 = y2.reshape((N,))
     
-    E,dd = run(X,y1,y2)
+    P = run(X,y1,y2)
     print dd
 
     plt.figure(1)
@@ -110,4 +99,9 @@ def selftest1():
     plt.subplot(1,2,2)
     plt.imshow(E, aspect='auto', interpolation='none')
     plt.colorbar()
-    plt.show()
+    plt.show()    
+    
+'''    
+    
+    
+    
