@@ -13,7 +13,7 @@ import kiwiel
 import alternatingOptim
 
 
-def run(W0,W1,W2,rho,method,maxiter_main,*args):
+def run(W0,W1,W2,rho,method1,maxiter_main,*args):
     #X,y1,y2,\
     #filt0,alg1,alg2,hparams0,hparams1,hparams2):
 
@@ -43,10 +43,10 @@ def run(W0,W1,W2,rho,method,maxiter_main,*args):
         % 
     end
     '''
-    if (method=='kiwiel'):    
+    if (method1=='kiwiel'):    
         u,wv = kiwiel.run(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
-    elif (method=='alt'):
-        u,wv = alternatingOptim.run(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
+    elif (method1=='alt'):
+        u,wv = alternatingOptim.run(u,(w,v),maxiter_main,'rmsprop',1E-3,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
     else:
         print 'Unknown method'
         exit()

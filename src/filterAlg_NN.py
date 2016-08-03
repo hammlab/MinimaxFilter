@@ -253,6 +253,10 @@ class NN1(FilterAlg):
         nlayers = len(nhs)
         #d = nhs[-1]
     
+        if not hparams['activation']=='sigmoid':
+            print 'Current support for sigmoid only'
+            exit()
+
         W = NN1.parseW(NN1.init(hparams),hparams)
 
         sparsity_param = 0.1  # desired average activation of the hidden units.

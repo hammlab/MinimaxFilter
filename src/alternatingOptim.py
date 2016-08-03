@@ -6,11 +6,11 @@ Created on Thu Jul 14 23:19:55 2016
 """
 
 import numpy as np
-from scipy.optimize import minimize
+#from scipy.optimize import minimize
 from scipy.optimize import line_search
 
 
-def run(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
+def run(u,wv,maxiter,method,eta,f,dfdu,Phi,Phi_lin,rho,\
     X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):
 
     '''
@@ -25,7 +25,9 @@ def run(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
     #c = 1E-4
     #sigma = 0.5
     #maxiter_linesearch = 30
-    
+    if not hasattr(run,'tsum'):
+        tsum=np.zeros(u.shape)
+   
     for iter in range(maxiter):
         # 1. Update w, v
         #w -= eta*alg1.dfdv(w,G,y1,hparams1)
@@ -40,10 +42,7 @@ def run(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
         # wh = argmin f_util, vh = argmin f_priv are UNIQUE solutions
         dfdu_ = dfdu(u,wv,rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2)
         q = -dfdu_
-        if False: # SGD:
-            eta = 1.
-            u += eta*q
-        else: # Line search
+        if method=='linesearch':
             res = line_search(f,dfdu,u,q,gfk=dfdu_,\
                 args=(wv,rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2))
             al = res[0]
@@ -52,12 +51,37 @@ def run(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
                 print 'No improvement in line search!'
             else:
                 u += al*q
+        elif method=='const':
+            #eta = 1.
+            u += eta*q
+        elif method=='rmsprop':
+            r = .9
+            #eta = 1E-3
+            tsum = r*tsum + (1.-r)*(q**2)
+            u += eta*q/(np.sqrt(tsum)+1E-20)
+        else:
+            print 'unimplemented method'
+        #elif False: # Adagrad
+        #    eta = 1E-3
+        #    tsum += q**2
+        #    u += eta*q/(np.sqrt(tsum)+1E-20)
+        #elif False: #Adam
+        #    beta1 = .9
+        #    beta2 = .999
+        #    m = beta1*m + (1-beta1)*q
+        #    v = beta2*v + (1-beta2)*(q**2)
+        #    u += c0 * m / (np.sqrt(v) + 1E-20)
 
+        
     #    Danskin's theorem:
     #   if -f_priv is convex in u (it's not) and hat(v) is unique (it's possible),
     #  then dPhi_v(u)/du = -rho*dPhi(u,wh)
 
     return (u,wv)
+
+def init(u):
+    run.tsum = np.zeros(u.shape)
+    
 
 '''
 def run3(u,wv,maxiter,f,dfdu,Phi,dPhidu,rho,\
