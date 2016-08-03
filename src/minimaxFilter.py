@@ -46,7 +46,7 @@ def run(W0,W1,W2,rho,method,maxiter_main,*args):
     if (method=='kiwiel'):    
         u,wv = kiwiel.run(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
     elif (method=='alt'):
-        u,wv = alternatingOptim.run1(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
+        u,wv = alternatingOptim.run(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
     else:
         print 'Unknown method'
         exit()
@@ -66,8 +66,7 @@ def _f(u,wv,\
 
     # f(u,wv) = rho*f1(u,w) - f2(u,v). 
     D,N = X.shape
-    w = wv[0]
-    v = wv[1]
+    w,v = wv
     G = filt0.g(u,X,hparams0)
     #d = G.shape[0]
     f1 = alg1.f(w,G,y1,hparams1)
@@ -85,20 +84,18 @@ def _dfdu(u,wv,\
 
     # f(u,wv) = rho*f1(u,w) - f2(u,v). 
     D,N = X.shape
-    w = wv[0]
-    v = wv[1]
-    G = filt0.g(u,X,hparams0)
-    d = G.shape[0]
-
+    w,v = wv
+    d = hparams1['d']
     # dgdu: u.size x d x Nsub
     # If dgdu is too large, subsample X and limit dgdu to 2GB
-    MAX_MEMORY = 2.*1024*1024*1024 # 2GB
+    MAX_MEMORY = 8.*1024*1024*1024 # 8GB
     Nsub = round(MAX_MEMORY/(u.size*d*8.))
     Nsub = min(Nsub,N)
     ind = np.random.choice(range(N),size=(Nsub,),replace=False)
+    tG = filt0.g(u,X[:,ind],hparams0)
     dgdu = filt0.dgdu(u,X[:,ind],hparams0).reshape((u.size,d*Nsub)) # u.size x d x N
-    df1 = alg1.dfdu(w,G[:,ind],y1[ind],dgdu,hparams1)
-    df2 = alg2.dfdu(v,G[:,ind],y2[ind],dgdu,hparams2)        
+    df1 = alg1.dfdu(w,tG,y1[ind],dgdu,hparams1)
+    df2 = alg2.dfdu(v,tG,y2[ind],dgdu,hparams2)        
 
     dfdu = rho*df1 - df2 + hparams0['l']*u
 
@@ -112,10 +109,7 @@ def _Phi(u,wv,maxiter,\
     # Phi(u) = -rho*max_w -f1(u,w) + max_v -f2(u,v)
     # = -rho Phi1(u) + Phi2(u), where 
     # Phi1(u) = max_w -f1, Phi2(u) = max_v -f2
-    
-    w = wv[0]
-    v = wv[1]
-
+    w,v = wv
     # Phi1(u) = max_w -f_util(u,w) = -min_w f_util(u,w)
     G = filt0.g(u,X,hparams0)
     res = minimize(alg1.f, w, args=(G,y1,hparams1),\
@@ -135,38 +129,64 @@ def _Phi(u,wv,maxiter,\
     assert np.isnan(v).any()==False
     assert np.isnan(Phiu)==False
 
-    return ((w,v),Phiu)
+    return (Phiu,(w,v))
 
+'''
+def _dPhidu(u,wv,maxiter,\
+        rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):        
+    # dPhidu = rho* df1du(u,wh) - df2du(u,vh)
+    w,v = wv
+
+    G = filt0.g(u,X,hparams0)
+    # Phi1(u) = max_w -f_util(u,w) = -min_w f_util(u,w)
+    res = minimize(alg1.f, w, args=(G,y1,hparams1),\
+        method='BFGS', jac=alg1.dfdv, options={'disp':False, 'maxiter':maxiter})    
+    w = res.x
+    #Phiu1 = -res.fun
+    
+    # Phi2(u) = max_v -f_priv(u,v) = -min_v f_priv(u,v)
+    res = minimize(alg2.f, v, args=(G,y2,hparams2),\
+        method='BFGS',jac=alg2.dfdv, options={'disp':False, 'maxiter':maxiter})    
+    v = res.x
+    #Phiu2 = -res.fun
+
+    dPhiu = _dfdu(u,(w,v),\
+        rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2)        
+
+    assert np.isnan(w).any()==False
+    assert np.isnan(v).any()==False
+    assert np.isnan(dPhiu).any()==False
+
+    return dPhiu
+'''
 
 
 def _Phi_lin(u,wv,q,maxiter,\
     rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):        
 
-    w = wv[0]
-    v = wv[1]
-
-    G = filt0.g(u,X,hparams0)
-    d,N = G.shape
-    
+    w,v = wv
+    d = hparams1['d']
+    N = X.shape[1]
     # dgdu: u.size x d x Nsub
     # If dgdu is too large, subsample X and limit dgdu to 2GB
-    MAX_MEMORY = 2.*1024*1024*1024 # 2GB
+    MAX_MEMORY = 8.*1024*1024*1024 # 8GB
     Nsub = round(MAX_MEMORY/(u.size*d*8.))
     Nsub = min(Nsub,N)
     ind = np.random.choice(range(N),size=(Nsub,),replace=False)
+    tG = filt0.g(u,X[:,ind],hparams0)
     dgdu = filt0.dgdu(u,X[:,ind],hparams0).reshape((u.size,d*Nsub)) # u.size x d x N
-   
+
     # Phi_lin(u) = -rho*max_w -f1(u,w) + max_v -f2(u,v)
     # = -rho Phi1lin(u) + Phi2lin(u), where 
     # Phi1lin(u) = max_w -f1lin, Phi2lin(u) = max_v -f2lin
     
-    res = minimize(alg1.flin, w, args=(q,G[:,ind],y1[ind],dgdu,hparams1), \
+    res = minimize(alg1.flin, w, args=(q,tG,y1[ind],dgdu,hparams1), \
         method='BFGS',jac=alg1.dflindv, options={'disp':False, 'maxiter':maxiter})    
     w = res.x
     Phiu1 = -res.fun
 
 
-    res = minimize(alg2.flin, v, args=(q,G[:,ind],y2[ind],dgdu,hparams2),\
+    res = minimize(alg2.flin, v, args=(q,tG,y2[ind],dgdu,hparams2),\
         method='BFGS',jac=alg2.dflindv, options={'disp':False, 'maxiter':maxiter})    
     v = res.x
     Phiu2 = -res.fun
@@ -177,7 +197,7 @@ def _Phi_lin(u,wv,q,maxiter,\
     assert np.isnan(v).any()==False
     assert np.isnan(Phiu)==False
 
-    return ((w,v),Phiu)
+    return (Phiu,(w,v))
 
 
 
@@ -354,8 +374,7 @@ def selftest2():
     
     d = 2
     
-    hparams0 = {'D':D0, 'd':d, 'nlayers':2, 'nhs':[3,3], 'output':'linear',\
-        'activation':'relu', 'l':lambda0}
+    hparams0 = {'D':D0, 'nhs':[3,3,d], 'activation':'sigmoid', 'l':lambda0}
     hparams1 = {'K':K1, 'l':lambda1, 'd':d}
     hparams2 = {'K':K2,'l':lambda2, 'd':d}
     

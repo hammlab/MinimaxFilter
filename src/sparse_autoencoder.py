@@ -2,7 +2,14 @@ import numpy as np
 
 
 def sigmoid(x):
-    return 1 / (1 + np.exp(-x))
+        
+    indp = np.where(x>=0)
+    indn = np.where(x<0)
+    tx = np.zeros(x.shape)
+    tx[indp] = 1./(1.+np.exp(-x[indp]))
+    tx[indn] = np.exp(x[indn])/(1.+np.exp(x[indn]))
+    return tx
+    #return 1 / (1 + np.exp(-x))
 
 
 def sigmoid_prime(x):
@@ -10,7 +17,7 @@ def sigmoid_prime(x):
 
 
 def KL_divergence(x, y):
-    return x * np.log(x / y) + (1 - x) * np.log((1 - x) / (1 - y))
+    return x * (np.log(x+1E-20)-np.log(y+1E-20)) + (1 - x) * (np.log(1 - x+1E-20) - np.log(1 - y+1E-20))
 
 
 def initialize(hidden_size, visible_size):
@@ -63,16 +70,16 @@ def sparse_autoencoder_cost(theta, visible_size, hidden_size,
     h = sigmoid(z3)
 
     # Sparsity
-    rho_hat = np.sum(a2, axis=1) / m
-    rho = np.tile(sparsity_param, hidden_size)
+    #rho_hat = np.sum(a2, axis=1) / m
+    #rho = np.tile(sparsity_param, hidden_size)
 
     # Cost function
     cost = np.sum((h - data) ** 2) / (2 * m) + \
-           (lambda_ / 2) * (np.sum(W1 ** 2) + np.sum(W2 ** 2)) + \
-           beta * np.sum(KL_divergence(rho, rho_hat))
+           (lambda_ / 2) * (np.sum(W1 ** 2) + np.sum(W2 ** 2))# + \
+           #beta * np.sum(KL_divergence(rho, rho_hat))
 
     # Backprop
-    sparsity_delta = np.tile(- rho / rho_hat + (1 - rho) / (1 - rho_hat), (m, 1)).transpose()
+    sparsity_delta = 0#np.tile(- rho / rho_hat + (1 - rho) / (1 - rho_hat), (m, 1)).transpose()
 
     delta3 = -(data - h) * sigmoid_prime(z3)
     delta2 = (W2.transpose().dot(delta3) + beta * sparsity_delta) * sigmoid_prime(z2)
@@ -148,19 +155,19 @@ def sparse_autoencoder_linear_cost(theta, visible_size, hidden_size,
     h = z3
 
     # Sparsity
-    rho_hat = np.sum(a2, axis=1) / m
-    rho = np.tile(sparsity_param, hidden_size)
+    #rho_hat = np.sum(a2, axis=1) / m
+    #rho = np.tile(sparsity_param, hidden_size)
 
 
     # Cost function
     cost = np.sum((h - data) ** 2) / (2 * m) + \
-           (lambda_ / 2) * (np.sum(W1 ** 2) + np.sum(W2 ** 2)) + \
-           beta * np.sum(KL_divergence(rho, rho_hat))
+           (lambda_ / 2) * (np.sum(W1 ** 2) + np.sum(W2 ** 2)) #+ \
+           #beta * np.sum(KL_divergence(rho, rho_hat))
 
 
 
     # Backprop
-    sparsity_delta = np.tile(- rho / rho_hat + (1 - rho) / (1 - rho_hat), (m, 1)).transpose()
+    sparsity_delta = 0.#np.tile(- rho / rho_hat + (1 - rho) / (1 - rho_hat), (m, 1)).transpose()
 
     delta3 = -(data - h)
     delta2 = (W2.transpose().dot(delta3) + beta * sparsity_delta) * sigmoid_prime(z2)

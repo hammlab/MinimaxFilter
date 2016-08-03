@@ -49,15 +49,7 @@ class NN1(FilterAlg):
         # W[i] = nhs[l] x nhs[l-1]
         W[0] = np.random.normal(size=(nhs[0],1+D))
         for l in range(1,nlayers):
-            W[l] = np.random.normal(size=(nhs[l],1+nhs[l-1]))
-        #W[nlayers] = np.random.normal(size=(d,1+nhs[nlayers-1]))
-
-        #b = [[] for i in range(nlayers)] 
-        #for i in range(nlayers-1):
-        #    b[i] = np.random.normal(size=(nhs[i],))
-        #b[nlayers-1] = np.random.normal(size=(d,))
-    
-        # net nj = sum_i Wji ai  
+            W[l] = 1E0*np.random.normal(size=(nhs[l],1+nhs[l-1]))
     
         # X => W[0]: nhs[0]x(1+D) => a[0]: nhs[0] => .... 
         #   =>  W[nlayers-1]: nhs[nlayers-1] x (1+nhs[nlayers-2])
@@ -148,7 +140,13 @@ class NN1(FilterAlg):
                 net = np.dot(W[l],np.vstack((np.ones((1,N)),a[l-1])))
                 
             if (hparams['activation']=='sigmoid'):
-                a[l] = 1./(1.+np.exp(-net))
+                indp = np.where(net>=0)
+                indn = np.where(net<0)
+                ta = np.zeros(net.shape)
+                ta[indp] = 1./(1.+np.exp(-net[indp]))
+                ta[indn] = np.exp(net[indn])/(1.+np.exp(net[indn]))
+                a[l] = ta
+                #a[l] = 1./(1.+np.exp(-net))
             #elif (hparams['activation']=='relu'):
             #    a[l] = np.maximum(0, net)
             #elif (hparams['activation']=='linear'):
@@ -258,9 +256,9 @@ class NN1(FilterAlg):
         W = NN1.parseW(NN1.init(hparams),hparams)
 
         sparsity_param = 0.1  # desired average activation of the hidden units.
-        lambda_ = 3e-3  # weight decay parameter
+        lambda_ = 1e-4  # weight decay parameter
         beta = 3  # weight of sparsity penalty term
-        options_ = {'maxiter': 200, 'disp': True}
+        options_ = {'maxiter': 400, 'disp': False}
         
         # Train autoencoder layer-by-layer
         for l in range(nlayers):
@@ -268,7 +266,11 @@ class NN1(FilterAlg):
                 x0 = sparse_autoencoder.initialize(nhs[l], D)
                 cost = lambda x: sparse_autoencoder.sparse_autoencoder_cost\
                     (x, D, nhs[l], lambda_, sparsity_param, beta, X)
-                res = minimize(cost, x0, method='L-BFGS-B', jac=True, options=options_)
+                while True:
+                    res = minimize(cost, x0, method='L-BFGS-B', jac=True, options=options_)
+                    if np.isnan(res.x).any() == False:
+                        break;
+                        
                 W[l][:,1:] = res.x[0:nhs[l]*D].reshape(nhs[l],D)
                 W[l][:,0] = res.x[2*nhs[l]*D:2*nhs[l]*D+nhs[l]]
                 feat = sparse_autoencoder.sparse_autoencoder(res.x,nhs[l],D,X)
@@ -276,7 +278,10 @@ class NN1(FilterAlg):
                 x0 = sparse_autoencoder.initialize(nhs[l], nhs[l-1])
                 cost = lambda x: sparse_autoencoder.sparse_autoencoder_cost\
                     (x, nhs[l-1], nhs[l], lambda_, sparsity_param, beta, feat)
-                res = minimize(cost, x0, method='L-BFGS-B', jac=True, options=options_)
+                while True:
+                    res = minimize(cost, x0, method='L-BFGS-B', jac=True, options=options_)
+                    if np.isnan(res.x).any() == False:
+                        break;
                 W[l][:,1:] = res.x[0:nhs[l]*nhs[l-1]].reshape(nhs[l],nhs[l-1])
                 W[l][:,0] = res.x[2*nhs[l]*nhs[l-1]:2*nhs[l]*nhs[l-1]+nhs[l]]
                 feat = sparse_autoencoder.sparse_autoencoder(res.x,nhs[l],nhs[l-1],feat)

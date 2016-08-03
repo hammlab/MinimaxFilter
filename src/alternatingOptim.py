@@ -10,7 +10,7 @@ from scipy.optimize import minimize
 from scipy.optimize import line_search
 
 
-def run1(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
+def run(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
     X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):
 
     '''
@@ -31,7 +31,7 @@ def run1(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
         #w -= eta*alg1.dfdv(w,G,y1,hparams1)
         #v -= eta*alg2.dfdv(v,G,y2,hparams2)
         # or fully optimize
-        wv,Phiu = Phi(u,wv,maxiter_Phi,rho,\
+        Phi_,wv = Phi(u,wv,maxiter_Phi,rho,\
             X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2)
         
         # 2. Update u
@@ -40,16 +40,18 @@ def run1(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
         # wh = argmin f_util, vh = argmin f_priv are UNIQUE solutions
         dfdu_ = dfdu(u,wv,rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2)
         q = -dfdu_
-        # SGD: u -= eta*dfdu_
-        # Or Line search
-        res = line_search(f,dfdu,u,q,gfk=dfdu_,\
-            args=(wv,rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2))
-        al = res[0]
-
-        if (al==None):
-            print 'No improvement in line search!'
-        else:
-            u += al*q
+        if False: # SGD:
+            eta = 1.
+            u += eta*q
+        else: # Line search
+            res = line_search(f,dfdu,u,q,gfk=dfdu_,\
+                args=(wv,rho,X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2))
+            al = res[0]
+    
+            if (al==None):
+                print 'No improvement in line search!'
+            else:
+                u += al*q
 
     #    Danskin's theorem:
     #   if -f_priv is convex in u (it's not) and hat(v) is unique (it's possible),
@@ -57,19 +59,29 @@ def run1(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
 
     return (u,wv)
 
+'''
+def run3(u,wv,maxiter,f,dfdu,Phi,dPhidu,rho,\
+    X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):
 
+    D,N = X.shape
+    maxiter_Phi = 50
+    
+   
+    res = minimize(Phi,u,args=(wv,maxiter_Phi,rho,\
+            X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2),\
+            method='BFGS', jac=dPhidu, options={'disp':False, 'maxiter':maxiter})    
+    u = res.x
+    
+    return (u,wv)
+'''
+
+'''
 def run2(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
     X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):
 
     print 'Not working for some reason'
     exit()
     
-    '''
-    min_u  Phi(u), where
-    Phi(u) = -rho max_w -f_util(u,w) + max_v -f_priv(u,v)
-    = rho min_w f_util(u,w) + max_v -f_priv(u,v)
-    '''
-
     D,N = X.shape
     #d = hparams0['d']
     maxiter_Phi = 5
@@ -80,7 +92,7 @@ def run2(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
         #w -= eta*alg1.dfdv(w,G,y1,hparams1)
         #v -= eta*alg2.dfdv(v,G,y2,hparams2)
         # or fully optimize
-        wv,Phiu = Phi(u,wv,maxiter_Phi,rho,\
+        Phi_,wv = Phi(u,wv,maxiter_Phi,rho,\
             X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2)
         
         # 2. Update u
@@ -92,4 +104,4 @@ def run2(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
         #Phiu = -res.fun
 
     return (u,wv)
-
+'''
