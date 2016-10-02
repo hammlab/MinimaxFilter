@@ -10,7 +10,7 @@ import numpy as np
 from scipy.optimize import line_search
 
 
-def run(u,wv,maxiter,method,eta,f,dfdu,Phi,Phi_lin,rho,\
+def run(u,wv,maxiter,f,dfdu,Phi,Phi_lin,rho,\
     X,y1,y2,filt0,alg1,alg2,hparams0,hparams1,hparams2):
 
     '''
@@ -18,15 +18,17 @@ def run(u,wv,maxiter,method,eta,f,dfdu,Phi,Phi_lin,rho,\
     Phi(u) = -rho max_w -f_util(u,w) + max_v -f_priv(u,v)
     = rho min_w f_util(u,w) + max_v -f_priv(u,v)
     '''
-    #eta = 1e0
     D,N = X.shape
     #d = hparams0['d']
     maxiter_Phi = 50
+    #method = 'rmsprop'
+    method = 'linesearch'
+    eta = 1E-3
     #c = 1E-4
     #sigma = 0.5
     #maxiter_linesearch = 30
     if not hasattr(run,'tsum'):
-        tsum=np.zeros(u.shape)
+        run.tsum=np.zeros(u.shape)
    
     for iter in range(maxiter):
         # 1. Update w, v
@@ -57,8 +59,8 @@ def run(u,wv,maxiter,method,eta,f,dfdu,Phi,Phi_lin,rho,\
         elif method=='rmsprop':
             r = .9
             #eta = 1E-3
-            tsum = r*tsum + (1.-r)*(q**2)
-            u += eta*q/(np.sqrt(tsum)+1E-20)
+            run.tsum = r*run.tsum + (1.-r)*(q**2)
+            u += eta*q/(np.sqrt(run.tsum)+1E-20)
         else:
             print 'unimplemented method'
         #elif False: # Adagrad
@@ -79,8 +81,8 @@ def run(u,wv,maxiter,method,eta,f,dfdu,Phi,Phi_lin,rho,\
 
     return (u,wv)
 
-def init(u):
-    run.tsum = np.zeros(u.shape)
+#def init(u):
+#    run.tsum = np.zeros(u.shape)
     
 
 '''

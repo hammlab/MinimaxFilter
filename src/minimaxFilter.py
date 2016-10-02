@@ -12,6 +12,12 @@ import kiwiel
 #reload(kiwiel)
 import alternatingOptim
 
+def init(W0,method1):
+    if (method1=='kiwiel'):    
+        pass
+    elif (method1=='alt'):
+        alternatingOptim.run.tsum = np.zeros(W0.flatten().shape)
+
 
 def run(W0,W1,W2,rho,method1,maxiter_main,*args):
     #X,y1,y2,\
@@ -46,7 +52,7 @@ def run(W0,W1,W2,rho,method1,maxiter_main,*args):
     if (method1=='kiwiel'):    
         u,wv = kiwiel.run(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
     elif (method1=='alt'):
-        u,wv = alternatingOptim.run(u,(w,v),maxiter_main,'rmsprop',1E-3,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
+        u,wv = alternatingOptim.run(u,(w,v),maxiter_main,_f,_dfdu,_Phi,_Phi_lin,rho,*args)
     else:
         print 'Unknown method'
         exit()

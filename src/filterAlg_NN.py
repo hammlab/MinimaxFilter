@@ -260,9 +260,9 @@ class NN1(FilterAlg):
         W = NN1.parseW(NN1.init(hparams),hparams)
 
         sparsity_param = 0.1  # desired average activation of the hidden units.
-        lambda_ = 1e-4  # weight decay parameter
+        lambda_ = 1e-3  # weight decay parameter
         beta = 3  # weight of sparsity penalty term
-        options_ = {'maxiter': 400, 'disp': False}
+        options_ = {'maxiter': 200, 'disp': False}
         
         # Train autoencoder layer-by-layer
         for l in range(nlayers):

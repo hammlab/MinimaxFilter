@@ -54,13 +54,13 @@ def run(u,v,maxiter_main,f,dfdu,Phi,Phi_lin,*args):
     for it in range(maxiter_main):
         #% Step 1. Solve the maximization at current point xk
         
-        v_,Phiu = Phi(u,v,maxiter_Phi,*args)
-        tPhiu = Phiu
+        Phi_,v_ = Phi(u,v,maxiter_Phi,*args)
+        tPhiu = Phi_
         
         #%fprintf('Main iter=%d/%d, Phiu=%f\n',iter,maxiter_main,Phiu);
         #% Step 2. Direction-finding subproblem 
         q,Psi = _AuxiliaryAlgorithm(u,v_,\
-                Phiu,xi,m,maxiter_aa,maxiter_Phi_lin,f,dfdu,Phi_lin,*args)
+                Phi_,xi,m,maxiter_aa,maxiter_Phi_lin,f,dfdu,Phi_lin,*args)
         if Psi >= -xi:
             break
             
@@ -68,12 +68,12 @@ def run(u,v,maxiter_main,f,dfdu,Phi,Phi_lin,*args):
         if True: #% standard
             al = 1.0
             for i in range(maxiter_linesearch):#%while 1
-                _,tPhiu = Phi(u+al*q,v_,maxiter_Phi,*args)
-                if tPhiu - Phiu <= c*al*Psi:
+                tPhiu,_ = Phi(u+al*q,v_,maxiter_Phi,*args)
+                if tPhiu - Phi_ <= c*al*Psi:
                     break
                 al *= sigma
             
-            if tPhiu - Phiu > c*al*Psi:
+            if tPhiu - Phi_ > c*al*Psi:
                 print 'No improvement in line search!'
                 #return (u,v)
 
@@ -140,7 +140,7 @@ def _AuxiliaryAlgorithm(u,v,Phiu,xi,m,maxiter_aa,maxiter_Phi_lin,f,dfdu,Phi_lin,
         #%Step 2. Primal optimality testing:
         q = -p
     
-        v,tPhiu = Phi_lin(u,v,q,maxiter_Phi_lin,*args)
+        tPhiu,v = Phi_lin(u,v,q,maxiter_Phi_lin,*args)
         if tPhiu - Phiu <= m*Psi:
             break
 
@@ -186,7 +186,7 @@ def selftest1():
         # = 2 u'u 
         #u = u.flatten()
     
-        return (-u, 2*np.dot(u,u))
+        return (2*np.dot(u,u), -u)
     
         
     def Philin(u,v,q,*args):
@@ -199,7 +199,7 @@ def selftest1():
     
         #u = u.flatten()
         #v = v.flatten()
-        return (-(u+q), 2*np.dot(u,u) + 4*np.dot(u,q) + np.dot(q,q))
+        return (2*np.dot(u,u) + 4*np.dot(u,q) + np.dot(q,q), -(u+q))
     
     
     
