@@ -91,10 +91,10 @@ def _dfdu(u,wv,\
     # f(u,wv) = rho*f1(u,w) - f2(u,v). 
     D,N = X.shape
     w,v = wv
-    d = hparams1['d']
+    d = hparams0['d']
     # dgdu: u.size x d x Nsub
-    # If dgdu is too large, subsample X and limit dgdu to 2GB
-    MAX_MEMORY = 8.*1024*1024*1024 # 8GB
+    # If dgdu is too large, subsample X and limit dgdu
+    MAX_MEMORY = 6.*1024*1024*1024 # 6GB
     Nsub = round(MAX_MEMORY/(u.size*d*8.))
     Nsub = min(Nsub,N)
     ind = np.random.choice(range(N),size=(Nsub,),replace=False)
