@@ -12,52 +12,28 @@ Choosing the type and amount of noise to guarantee differential privacy is left 
 depend on model assumptions. Please see [Chaudhuri'11], [Rajkumar'12], [Song'13], [Bassily'14], [Hamm'16].
 If noise is not used, this library can also serve as a crowd-based, parallel/distributed optimization framework [Tsitsiklis'84], [Agarwal'11], [Dekel'11]. 
 
-
-### Features
----
-#### Implemented client types
-Android (JAVA), iOS (Objective C), linux (python)
-
-#### Implemented server types
-Node.js
-
-#### Available options
-
-* Loss function / classifiers: binary logistic regression, softmax, binary SVM with hindge loss 
-* Noise:  type {Laplace, Gaussian}, scale s
-* Learning rate: constant, 1/t, 1/sqrt{t}, AdaGrad, RMSprop
-* Client- and server-side minibatch
-
-#### Applications
----
-Currently, the system is demonstrated with the MNIST dataset (http://yann.lecun.com/exdb/mnist/),
-for 10-class and binary (0-vs-1) classification problems. 
-Ideally, the most relevant types of data whose privacy is important are those generated
-from smartphones and IoT devices. More examples will be added in the near future. 
-
-
 ### Getting Started
 ---
-#### 1. Set up firebase account.
-See [firebase/readme.md](firebase/readme.md) for more instructions.
-#### 2. Download and build client apps
-Currently, the client uses pre-stored local data such as MNIST.
-The users of this library should replace it with custom data sensing or collecting routines.
-For iOS devices, see [client/iOS/readme.md](client/iOS/readme.md).
-For Android devices, see [client/android/readme.md](client/android/readme.md).
-For python clients, see [client/python/readme.md](client/python/readme.md).
-#### 3. Download and change server-side app.
-See [server/readme.md](server/readme.md) for more instructions.
-#### 4. Distribute client apps to users and start the server-side app.
+#### 1. Download files in /src and /test
+#### 2. Run [test/test_NN_genki.py](test/test_NN_genki.py) to test a two-layer sigmoid NN network with softmax output layers on Genki dataset.
+The Genki datat is ...
+Results.
+#### 3. Run [test/test_all_genki.py](test/test_all_genki.py)
+Results.
 
 
+### Description of src files
+---
+See [src/readme.md](src/readme.md) for the summary of source files
 
 
 ### References
 ---
-* [Hamm'15]: J. Hamm, A. Champion, G. Chen, M. Belkin, and D.Xuan, 
-"Crowd-ML: A privacy-preserving learning framework for a crowd of smart devices." In Proceedings of the 35th IEEE
-International Conference on Distributed Computing Systems (ICDCS). IEEE, 2015. [pdf](docs/icdcs15_jh_final.pdf)
+* [Hamm'15]: J. Hamm, "Preserving privacy of continuous high-dimensional data with minimax filters." 
+In Proceedings of the Eighteenth International Conference on Artificial Intelligence and Statistics (AISTATS), 2015.
+* [Hamm'16a]: J. Hamm, "Enhancing utility and privacy with noisy minimax filters." Under review, 2016.
+*[Hamm'16b]: J. Hamm, "Mimimax Filter: A Learning Approach to Preserve Privacy from Inference Attacks." arXiv, 2016
+
 
 ### License
 ---
