@@ -67,7 +67,7 @@ See [src/readme.md](src/readme.md) for the summary of source files
 * [Hamm'15]: J. Hamm, "Preserving privacy of continuous high-dimensional data with minimax filters." 
 In Proceedings of the Eighteenth International Conference on Artificial Intelligence and Statistics (AISTATS), 2015.
 * [Hamm'16a]: J. Hamm, "Enhancing utility and privacy with noisy minimax filters." Under review, 2016.
-*[Hamm'16b]: J. Hamm, "Mimimax Filter: A Learning Approach to Preserve Privacy from Inference Attacks." arXiv, 2016
+* [Hamm'16b]: J. Hamm, "Mimimax Filter: A Learning Approach to Preserve Privacy from Inference Attacks." arXiv, 2016
 
 
 ### License
