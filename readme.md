@@ -41,7 +41,7 @@ Results.
 Pre-training by autoencoder
 A few minutes,
 After 50 iterations, ~88% accuracy in facial expression classification and ~66% accuracy in gender classification.
-Test error: rho=10.000000, d=10, trial=0, rate1=0.875000, rate2=0.655000
+Test error: rho=10.000000, d=5, trial=0, rate1=0.845000, rate2=0.565000
 
 Results will be save to a file named 'test_NN_genki.npz'
 
