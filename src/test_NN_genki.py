@@ -52,13 +52,13 @@ ind_test_dom1 = [[range(Ntrain,Ntrain+Ntest)]]
 ##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ntrials = 1
-ds = [10]#[10,20,50,100]
+ds = [5]#[10,20,50,100]
 
 lambda0 = 1E-6
 lambda1 = 1E-6
 lambda2 = 1E-6
 
-maxiter_minimax = 100
+maxiter_minimax = 50
 maxiter_final = 50
 rho = 10.
 
