@@ -30,7 +30,7 @@ lower inference accuracy, often significantly lower, than previous methods.
 ---
 #### 1. Download all files in [src/](src) and [test/](test)
 Make sure you can access scripts in /src, for example by downloading files from both /src and /test into the same folder.
-Description of the files are in [src/readme.md](src/readme.md) and [test/readme.md](test/readme.md).
+Description of the scripts are in [src/readme.md](src/readme.md).
 The Genki dataset [test/genki.mat](test/genki.mat) is originally downloaded from http://mplab.ucsd.edu. 
 
 #### 2. Run [test/test_NN_genki.py](test/test_NN_genki.py) 
