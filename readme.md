@@ -4,10 +4,6 @@
 
 ![concept figure](minimaxfilter2.jpg "Example minimax filter")
 
-#### Summary
-The library allows devices (Android, iOS, and python clients) to learn a common classifier/regression model with differential privacy, by solving the distributed ERM problem: min_w f(w) = 1/M sum_{i=1}^M f_i(w), where f_i(w) = 1/n sum_j l(h_w(x_{ij}), y_{ij}).
-The library implements private distributed synchronous risk minimization based on [**Hamm'15**], using [Google Firebase](https://firebase.google.com/) as a simple and robust syncrhonization method.  This idea was featured in [Gigaom] (https://gigaom.com/2015/01/22/researchers-show-a-machine-learning-network-for-connected-devices/).
-
 #### Abstract
 
 Preserving privacy of continuous and/or high-dimensional data such as images, videos
@@ -33,21 +29,30 @@ lower inference accuracy, often significantly lower, than previous methods.
 ### Getting Started
 ---
 #### 1. Download files in /src and /test
-The Genki dataset [test/genki.mat](test/genki.mat) ...
+Make sure you can access scripts in /src, for example by downloading files in both /src and /test in the same folder.
+Description of the files are in [src/readme.md](src/readme.md) and [test/readme.md](test/readme.md).
+The Genki dataset [test/genki.mat](test/genki.mat) was originally downloaded from http://mplab.ucsd.edu. 
 
-#### 2. Run [test/test_NN_genki.py](test/test_NN_genki.py) to test a two-layer sigmoid NN network with softmax output layers on Genki dataset.
+#### 2. Run [test/test_NN_genki.py](test/test_NN_genki.py) 
+The task is to learn a filter of face images from the Genki dataset which allows accurate classification of smile vs non-smile but prevents accurate classification of male vs female. 
 
-Results.
-Pre-training by autoencoder
-A few minutes,
-After 50 iterations, ~88% accuracy in facial expression classification and ~66% accuracy in gender classification.
-Test error: rho=10.000000, d=5, trial=0, rate1=0.845000, rate2=0.565000
+The script finds a minimax filter by alternating optimization. The filer is a two-layer sigmoid neural net and the classifiers are softmax classifiers. 
 
+The script will run for a few minutes on a desktop. 
+After 50 iterations, the filter will achieve ~88% accuracy in facial expression classification and ~66% accuracy in gender classification.
+```
+minimax-NN: rho=10.000000, d=10, trial=0, rate1=0.88, rate2=0.66
+```
 Results will be save to a file named 'test_NN_genki.npz'
 
 #### 3. Run [test/test_all_genki.py](test/test_all_genki.py)
-Results. In a few minutes
+The task is the same as before (accurate facial expression and inaccurate gender classification.)
 
+The script trains several private and non-private algorithms for the same task, including a linear minimax filter . on the same data. finds a min-diff-max optimal filter by alternating optimization. The filer is a two-layer sigmoid neural net and the classifiers are softmax classifiers. 
+
+The script will also run for a few minutes on a desktop. 
+Below is an example result from the script. The rate1 is the accuracy of expression classification and the rate 2 is the accuracy of gender classification.
+```
 rand: d=10, trial=0, rate1=0.705000, rate2=0.705000
 
 pca: d=10, trial=0, rate1=0.840000, rate2=0.665000
@@ -55,19 +60,14 @@ pca: d=10, trial=0, rate1=0.840000, rate2=0.665000
 pls: d=10, trial=0, rate1=0.850000, rate2=0.685000
 
 alt: rho=10.000000, d=10, trial=0, rate1=0.825000, rate2=0.520000
-
-
-### Description of src files
----
-See [src/readme.md](src/readme.md) for the summary of source files
+```
 
 
 ### References
 ---
 * [Hamm'15]: J. Hamm, "Preserving privacy of continuous high-dimensional data with minimax filters." 
 In Proceedings of the Eighteenth International Conference on Artificial Intelligence and Statistics (AISTATS), 2015.
-* [Hamm'16a]: J. Hamm, "Enhancing utility and privacy with noisy minimax filters." Under review, 2016.
-* [Hamm'16b]: J. Hamm, "Mimimax Filter: A Learning Approach to Preserve Privacy from Inference Attacks." arXiv, 2016
+* [Hamm'16b]: J. Hamm, "Mimimax Filter: A Learning Approach to Preserve Privacy from Inference Attacks." arXiv:1610.03577, 2016
 
 
 ### License
