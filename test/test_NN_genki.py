@@ -100,7 +100,7 @@ for trial in range(ntrials):
                 rate1,_ = mlogreg.accuracy(tW1,G_test,y1[:,ind_test_dom1[trial][0]].squeeze())
                 rate2,_ = mlogreg.accuracy(tW2,G_test,y2[:,ind_test_dom1[trial][0]].squeeze())
 
-                print 'Test error: rho=%f, d=%d, trial=%d, rate1=%f, rate2=%f\n' % \
+                print 'minimax (NN): rho=%f, d=%d, trial=%d, rate1=%f, rate2=%f\n' % \
                     (rho,d,trial,rate1,rate2)
 
                 rates1_minimax2[j,trial] = rate1
