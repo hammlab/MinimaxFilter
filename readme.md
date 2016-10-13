@@ -1,5 +1,5 @@
 ### Minimax Filter
-#### is a machine learning approach to preserve privacy against inference attacks
+#### is a learning approach to preserve privacy of continuous high-dimensional data (such as images, audios, and biometric data) against inference attacks. That is, an adversary cannot accurately infer sensitive or identifying information from the  filtered data.  
 ---
 
 ![concept figure](minimaxfilter2.jpg "Example minimax filter")
@@ -61,6 +61,7 @@ pls: d=10, trial=0, rate1=0.850000, rate2=0.685000
 
 alt: rho=10.000000, d=10, trial=0, rate1=0.825000, rate2=0.520000
 ```
+Here 'alt' is a linear minimax filter.
 
 
 ### References
