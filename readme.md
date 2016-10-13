@@ -66,6 +66,8 @@ Here 'alt' is the linear minimax filter, 'rate1' is the accuracy of expression c
 
 ### Reference
 ---
+* [J. Hamm, "Preserving privacy of continuous high-dimensional data with minimax filters," 
+ AISTATS, 2015](http://web.cse.ohio-state.edu/~hammj/papers/aistats15_2_jh_final.pdf)
 * [J. Hamm, "Mimimax Filter: Learning to Preserve Privacy from Inference Attacks," arXiv:1610.03577, 2016](http://arxiv.org/abs/1610.03577)
 
 
