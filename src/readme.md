@@ -11,7 +11,7 @@ By the way, the library has to compute the Jacobian of the NN output w.r.t. the 
 The class requires several member methods to be implemented, such as 'df/dv', 'dfdu', etc.
 Currently, only the softmax (=multclass logistic regression) is implemented.
 
-[minimaxFilter](minimaxFilter.py) is a module that formulates the privacy-utility optimization problem into a min-diff-max  problem. Try running minimaxFilter.selftest1() and selftest2(). 
+[minimaxFilter](minimaxFilter.py) is a module that formulates the privacy-utility optimization problem into a min-diff-max  problem. Try running 'minimaxFilter.selftest1()' and 'minimaxFilter.selftest2()'. 
 
 [kiwiel](kiwiel.py) is a module that solves the standard minimax problem 'min_u max_v f(u,v).' Descriptions are given in [Hamm'15].
 
@@ -19,4 +19,4 @@ Currently, only the softmax (=multclass logistic regression) is implemented.
 
 [privacyLDA](privacyLDA.py) is a heuristic proposed in [Hamm'16] which is similar to linear discriminant analysis (LDA).
 
-[privacyPLS](privacyPLS.py) is an implementation of another privacy-preserving filter from [Enev et al., Annual Computer Security Applications Conference (ACSAC), p.149, 2012.]
+[privacyPLS](privacyPLS.py) is an implementation of another privacy-preserving filter from Enev et al., Annual Computer Security Applications Conference (ACSAC), 2012.
