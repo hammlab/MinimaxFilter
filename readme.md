@@ -1,5 +1,5 @@
 ### Minimax Filter
-#### can preserve privacy of images, audios, or biometric data by making it difficult for an adversary to infer sensitive or identifying information from the filtered data.
+#### can preserve privacy of images, audios, or biometric data by making it difficult for an adversary to infer sensitive or identifying information from those data after filtering.
 ---
 
 ![concept figure](minimaxfilter2.jpg "Example minimax filter")
