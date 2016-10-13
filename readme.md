@@ -1,5 +1,5 @@
 ### Minimax Filter
-#### is a learning approach to preserve privacy of continuous high-dimensional data (such as images, audios, and biometric data) against inference attacks. That is, an adversary cannot accurately infer sensitive or identifying information from the  filtered data.  
+#### can preserve privacy of images, audios, or biometric data by making it difficult for an adversary to infer sensitive or identifying information from the filtered data.
 ---
 
 ![concept figure](minimaxfilter2.jpg "Example minimax filter")
@@ -29,12 +29,12 @@ lower inference accuracy, often significantly lower, than previous methods.
 ### Getting Started
 ---
 #### 1. Download files in /src and /test
-Make sure you can access scripts in /src, for example by downloading files in both /src and /test in the same folder.
+Make sure you can access scripts in /src, for example by downloading files from both /src and /test into the same folder.
 Description of the files are in [src/readme.md](src/readme.md) and [test/readme.md](test/readme.md).
-The Genki dataset [test/genki.mat](test/genki.mat) was originally downloaded from http://mplab.ucsd.edu. 
+The Genki dataset [test/genki.mat](test/genki.mat) is originally downloaded from http://mplab.ucsd.edu. 
 
 #### 2. Run [test/test_NN_genki.py](test/test_NN_genki.py) 
-The task is to learn a filter of face images from the Genki dataset which allows accurate classification of smile vs non-smile but prevents accurate classification of male vs female. 
+The task is to learn a filter of face image from the Genki dataset which allows accurate classification of 'smile' vs 'non-smile' but prevents accurate classification of 'male' vs 'female'. 
 
 The script finds a minimax filter by alternating optimization. The filer is a two-layer sigmoid neural net and the classifiers are softmax classifiers. 
 
@@ -48,10 +48,10 @@ Results will be save to a file named 'test_NN_genki.npz'
 #### 3. Run [test/test_all_genki.py](test/test_all_genki.py)
 The task is the same as before (accurate facial expression and inaccurate gender classification.)
 
-The script trains several private and non-private algorithms for the same task, including a linear minimax filter . on the same data. finds a min-diff-max optimal filter by alternating optimization. The filer is a two-layer sigmoid neural net and the classifiers are softmax classifiers. 
+The script trains and compares several private and non-private algorithms for the same task, including a linear minimax filter.
 
 The script will also run for a few minutes on a desktop. 
-Below is an example result from the script. The rate1 is the accuracy of expression classification and the rate 2 is the accuracy of gender classification.
+You will see similar results as follows.
 ```
 rand: d=10, trial=0, rate1=0.705000, rate2=0.705000
 
@@ -61,14 +61,14 @@ pls: d=10, trial=0, rate1=0.850000, rate2=0.685000
 
 alt: rho=10.000000, d=10, trial=0, rate1=0.825000, rate2=0.520000
 ```
-Here 'alt' is a linear minimax filter.
+Here 'alt' is the linear minimax filter, 'rate1' is the accuracy of expression classification and 'rate 2' is the accuracy of gender classification.
 
 
 ### References
 ---
-* [Hamm'15]: J. Hamm, "Preserving privacy of continuous high-dimensional data with minimax filters." 
-In Proceedings of the Eighteenth International Conference on Artificial Intelligence and Statistics (AISTATS), 2015.
-* [Hamm'16b]: J. Hamm, "Mimimax Filter: A Learning Approach to Preserve Privacy from Inference Attacks." arXiv:1610.03577, 2016
+* [J. Hamm, "Preserving privacy of continuous high-dimensional data with minimax filters," 
+AISTATS, 2015](http://web.cse.ohio-state.edu/~hammj/papers/aistats15_2_jh_final.pdf)
+* [J. Hamm, "Mimimax Filter: Learning to Preserve Privacy from Inference Attacks." arXiv:1610.03577, 2016](http://arxiv.org/abs/1610.03577)
 
 
 ### License
